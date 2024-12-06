@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(GeneticTSP)
+project(SeatingChart)
 
 set(CMAKE_CXX_COMPILER "c++")
 
@@ -11,5 +11,6 @@ SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SOURCE_FILES)
-add_executable(GeneticTSP ${SOURCE_FILES})
+set(SOURCE_FILES src/main.cpp)
+
+add_executable(SeatingChart ${SOURCE_FILES})
