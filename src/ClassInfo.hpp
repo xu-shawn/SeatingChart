@@ -7,8 +7,10 @@
 namespace SeatingChart {
 
 struct ClassInfo {
-    std::vector<std::unordered_set<int>> friends;
-    std::vector<std::unordered_set<int>> enemies;
+    std::vector<std::vector<int>>  friends;
+    std::vector<std::vector<int>>  enemies;
+    std::vector<std::vector<bool>> friends_lookup;
+    std::vector<std::vector<bool>> enemies_lookup;
 };
 
 }
