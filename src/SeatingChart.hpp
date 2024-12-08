@@ -35,11 +35,13 @@ class SeatingChart {
     template<typename PRNG>
     void mutate(PRNG&);
 
-    friend constexpr double score(const SeatingChart<Row, Column>&, const ClassInfo&) noexcept;
+    friend constexpr double score(const SeatingChart<Row, Column>&,
+                                  const ClassInfo<Row * Column>&) noexcept;
 };
 
 template<std::size_t Row, std::size_t Column>
-constexpr double score(const SeatingChart<Row, Column>& chart, const ClassInfo& info) noexcept;
+constexpr double score(const SeatingChart<Row, Column>& chart,
+                       const ClassInfo<Row * Column>&   info) noexcept;
 
 }
 
@@ -108,7 +110,8 @@ void SeatingChart<Row, Column>::mutate(PRNG& prng) {
 }
 
 template<std::size_t Row, std::size_t Column>
-constexpr double score(const SeatingChart<Row, Column>& chart, const ClassInfo& info) noexcept {
+constexpr double score(const SeatingChart<Row, Column>& chart,
+                       const ClassInfo<Row * Column>&   info) noexcept {
     return 0;
 }
 
