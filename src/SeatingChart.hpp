@@ -34,9 +34,6 @@ class SeatingChart {
 
     template<typename PRNG>
     void mutate(PRNG&);
-
-    friend constexpr double score(const SeatingChart<Row, Column>&,
-                                  const ClassInfo<Row * Column>&) noexcept;
 };
 
 template<std::size_t Row, std::size_t Column>
