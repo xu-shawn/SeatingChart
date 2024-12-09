@@ -25,11 +25,11 @@ class ClassInfo {
         bool>>
     constexpr ClassInfo(T&&, U&&);
 
-    constexpr bool friends_towards(std::size_t, std::size_t) const noexcept;
-    constexpr bool enemies_towards(std::size_t, std::size_t) const noexcept;
+    [[nodiscard]] constexpr bool friends_towards(std::size_t, std::size_t) const noexcept;
+    [[nodiscard]] constexpr bool enemies_towards(std::size_t, std::size_t) const noexcept;
 
-    constexpr const auto& enemies_of(std::size_t) const noexcept;
-    constexpr const auto& friends_of(std::size_t) const noexcept;
+    [[nodiscard]] constexpr const auto& enemies_of(std::size_t) const noexcept;
+    [[nodiscard]] constexpr const auto& friends_of(std::size_t) const noexcept;
 };
 
 }

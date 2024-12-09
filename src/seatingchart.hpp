@@ -7,14 +7,17 @@
 #include <random>
 #include <type_traits>
 
-#include "ClassInfo.hpp"
-
 namespace SeatingChart {
+
+struct Location {
+    std::size_t row;
+    std::size_t column;
+};
 
 template<std::size_t Row, std::size_t Column>
 class SeatingChart {
-    std::array<std::array<std::size_t, Column>, Row>    chart_;
-    std::array<std::pair<size_t, size_t>, Row * Column> lookup_;
+    std::array<std::array<std::size_t, Column>, Row> seats_;
+    std::array<Location, Row * Column>               locations_;
 
     constexpr void swap(std::size_t, std::size_t) noexcept;
 
@@ -26,8 +29,13 @@ class SeatingChart {
                bool>>
     constexpr SeatingChart(T&&);
     constexpr SeatingChart(const SeatingChart&) = default;
-    constexpr const auto& chart() const noexcept { return chart_; }
-    constexpr const auto& lookup() const noexcept { return lookup_; }
+
+    [[nodiscard]] constexpr const auto&        seats() const noexcept { return seats_; }
+    [[nodiscard]] constexpr const auto&        locations() const noexcept { return locations_; }
+    [[nodiscard]] static constexpr std::size_t tablemate_column(std::size_t column) noexcept {
+        return column - 2 * (column % 2) + 1;
+    }
+    [[nodiscard]] constexpr std::size_t get_tablemate(std::size_t) const noexcept;
 
     template<typename PRNG>
     void random_shuffle(PRNG&);
@@ -36,10 +44,6 @@ class SeatingChart {
     void mutate(PRNG&);
 };
 
-template<std::size_t Row, std::size_t Column>
-constexpr double score(const SeatingChart<Row, Column>& chart,
-                       const ClassInfo<Row * Column>&   info) noexcept;
-
 }
 
 namespace SeatingChart {
@@ -47,10 +51,10 @@ namespace SeatingChart {
 template<std::size_t Row, std::size_t Column>
 template<typename T, typename>
 constexpr SeatingChart<Row, Column>::SeatingChart(T&& c) :
-    chart_(std::forward<T>(c)) {
+    seats_(std::forward<T>(c)) {
     for (size_t i = 0; i < Row; i++)
         for (size_t j = 0; j < Column; j++)
-            lookup_.emplace(chart_[i][j], std::make_pair<i, j>);
+            locations_.emplace(seats_[i][j], {i, j});
 }
 
 template<std::size_t Row, std::size_t Column>
@@ -58,12 +62,18 @@ constexpr void SeatingChart<Row, Column>::swap(std::size_t first, std::size_t se
     using std::swap;
 
     assert(first >= 0 && first < Row * Column && second >= 0 && first < Row * Column);
-    const auto [first_row, first_column]   = lookup_[first];
-    const auto [second_row, second_column] = lookup_[second];
+    const auto [first_row, first_column]   = locations_[first];
+    const auto [second_row, second_column] = locations_[second];
 
-    swap(chart_[first_row], chart_[first_column]);
-    swap(chart_[second_row], chart_[second_column]);
-    swap(lookup_[first], lookup_[second]);
+    swap(seats_[first_row], seats_[first_column]);
+    swap(seats_[second_row], seats_[second_column]);
+    swap(locations_[first], locations_[second]);
+}
+
+template<std::size_t Row, std::size_t Column>
+constexpr std::size_t SeatingChart<Row, Column>::get_tablemate(std::size_t student) const noexcept {
+    const auto [row, column] = locations_[student];
+    return seats_[row][tablemate_column(column)];
 }
 
 template<std::size_t Row, std::size_t Column>
@@ -75,13 +85,13 @@ void SeatingChart<Row, Column>::random_shuffle(PRNG& prng) {
 
     for (int i = 0; i < Row; i++)
         for (int j = 0; j < Column; j++)
-            temp[i * Column + j] = chart_[i][j];
+            temp[i * Column + j] = seats_[i][j];
 
     std::shuffle(begin(temp), end(temp), prng);
 
     for (int i = 0; i < Row; i++)
         for (int j = 0; j < Column; j++)
-            chart_[i][j] = temp[i * Column + j];
+            seats_[i][j] = temp[i * Column + j];
 }
 
 template<std::size_t Row, std::size_t Column>
@@ -95,21 +105,15 @@ void SeatingChart<Row, Column>::mutate(PRNG& prng) {
     for (int i = 0; i < num_swaps; i++)
     {
         const int chosen_student = dist(prng);
-        const auto [x, y]        = lookup_[chosen_student];
+        const auto [x, y]        = locations_[chosen_student];
 
         const int destination_x =
           distribution_type{std::max(x - 2, 0), std::min(x + 2, Row - 1)}(prng);
         const int destination_y =
           distribution_type{std::max(y - 2, 0), std::min(y + 2, Row - 1)}(prng);
 
-        this->swap(chart_[x][y], chart_[destination_x][destination_y]);
+        this->swap(seats_[x][y], seats_[destination_x][destination_y]);
     }
-}
-
-template<std::size_t Row, std::size_t Column>
-constexpr double score(const SeatingChart<Row, Column>& chart,
-                       const ClassInfo<Row * Column>&   info) noexcept {
-    return 0;
 }
 
 }
