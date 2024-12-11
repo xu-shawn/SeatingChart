@@ -6,6 +6,7 @@
 #include <cassert>
 #include <random>
 #include <type_traits>
+#include <iostream>
 
 namespace SeatingChart {
 
@@ -19,7 +20,8 @@ class SeatingChart {
     std::array<std::array<std::size_t, Column>, Row> seats_;
     std::array<Location, Row * Column>               locations_;
 
-    constexpr void swap(std::size_t, std::size_t) noexcept;
+    constexpr void swap_students(std::size_t, std::size_t) noexcept;
+    constexpr void swap_pairs(std::size_t, std::size_t) noexcept;
 
    public:
     template<typename T,
@@ -42,6 +44,9 @@ class SeatingChart {
 
     template<typename PRNG>
     void mutate(PRNG&);
+
+    template<typename PRNG>
+    void mutate2(PRNG&);
 };
 
 }
@@ -58,16 +63,22 @@ constexpr SeatingChart<Row, Column>::SeatingChart(T&& c) :
 }
 
 template<std::size_t Row, std::size_t Column>
-constexpr void SeatingChart<Row, Column>::swap(std::size_t first, std::size_t second) noexcept {
+constexpr void SeatingChart<Row, Column>::swap_students(std::size_t first,
+                                                        std::size_t second) noexcept {
     using std::swap;
-
     assert(first >= 0 && first < Row * Column && second >= 0 && first < Row * Column);
     const auto [first_row, first_column]   = locations_[first];
     const auto [second_row, second_column] = locations_[second];
 
-    swap(seats_[first_row], seats_[first_column]);
-    swap(seats_[second_row], seats_[second_column]);
+    swap(seats_[first_row][first_column], seats_[second_row][second_column]);
     swap(locations_[first], locations_[second]);
+}
+
+template<std::size_t Row, std::size_t Column>
+constexpr void SeatingChart<Row, Column>::swap_pairs(std::size_t first,
+                                                     std::size_t second) noexcept {
+    this->swap_students(first, second);
+    this->swap_students(get_tablemate(first), get_tablemate(second));
 }
 
 template<std::size_t Row, std::size_t Column>
@@ -98,7 +109,7 @@ template<std::size_t Row, std::size_t Column>
 template<typename PRNG>
 void SeatingChart<Row, Column>::mutate(PRNG& prng) {
     using distribution_type = std::uniform_int_distribution<typename PRNG::result_type>;
-    static const distribution_type dist{0, Row * Column - 1};
+    static distribution_type dist{0, Row * Column - 1};
 
     const int num_swaps = distribution_type{0, (Row * Column - 1) / 4}(prng);
 
@@ -108,11 +119,37 @@ void SeatingChart<Row, Column>::mutate(PRNG& prng) {
         const auto [x, y]        = locations_[chosen_student];
 
         const int destination_x =
-          distribution_type{std::max(x - 2, 0), std::min(x + 2, Row - 1)}(prng);
+          distribution_type{std::max<typename PRNG::result_type>(x, 2) - 2,
+                            std::min<typename PRNG::result_type>(x + 2, Row - 1)}(prng);
         const int destination_y =
-          distribution_type{std::max(y - 2, 0), std::min(y + 2, Row - 1)}(prng);
+          distribution_type{std::max<typename PRNG::result_type>(y, 2) - 2,
+                            std::min<typename PRNG::result_type>(y + 2, Column - 1)}(prng);
 
-        this->swap(seats_[x][y], seats_[destination_x][destination_y]);
+        this->swap_students(seats_[x][y], seats_[destination_x][destination_y]);
+    }
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename PRNG>
+void SeatingChart<Row, Column>::mutate2(PRNG& prng) {
+    using distribution_type = std::uniform_int_distribution<typename PRNG::result_type>;
+    static distribution_type dist{0, Row * Column - 1};
+
+    const int num_swaps = distribution_type{0, (Row * Column - 1) / 4}(prng);
+
+    for (int i = 0; i < num_swaps; i++)
+    {
+        const int chosen_student = dist(prng);
+        const auto [x, y]        = locations_[chosen_student];
+
+        const int destination_x =
+          distribution_type{std::max<typename PRNG::result_type>(x, 2) - 2,
+                            std::min<typename PRNG::result_type>(x + 2, Row - 1)}(prng);
+        const int destination_y =
+          distribution_type{std::max<typename PRNG::result_type>(y, 2) - 2,
+                            std::min<typename PRNG::result_type>(y + 2, Column - 1)}(prng);
+
+        this->swap_pairs(seats_[x][y], seats_[destination_x][destination_y]);
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <functional>
 #include <random>
 #include <vector>
 
@@ -42,7 +43,8 @@ class Simulation {
 
    public:
     Simulation(const SeatingChart<Row, Column>&, const ClassInfo<Row * Column>&, std::size_t);
-    SimulationInfo step() noexcept;
+    SimulationInfo                  step() noexcept;
+    const ScoredChart<Row, Column>& top() const noexcept;
 };
 
 template<std::size_t Row, std::size_t Column>
@@ -80,28 +82,44 @@ Simulation<Row, Column>::Simulation(const SeatingChart<Row, Column>& seed,
 
 template<std::size_t Row, std::size_t Column>
 SimulationInfo Simulation<Row, Column>::step() noexcept {
-    using std::cbegin, std::size;
+    using std::begin, std::end, std::cbegin, std::size;
+    using distribution_type = std::uniform_int_distribution<typename decltype(rng)::result_type>;
+
+    distribution_type dist{0, 100};
 
     SimulationInfo ret;
 
-    for (const auto& chart : population)
+    for (auto& chart : population)
         chart.score = score_chart(chart.chart, class_info);
 
-    std::sort(population);
+    std::sort(begin(population), end(population), std::greater{});
 
     ret.best_score = population[0].score;
 
     auto it = cbegin(population);
-    for (std::size_t i = size(population) / 2 + 1; i < size(population); i++)
+    for (std::size_t i = size(population) / 2; i < size(population); i++)
     {
         population[i] = *it;
-        std::advance(it);
+        ++it;
     }
 
     for (std::size_t i = 1; i < size(population); i++)
-        population[i].chart.mutate(rng);
+        if (population[i].score > 150)
+        {
+            if (dist(rng) > 70)
+                population[i].chart.mutate(rng);
+            else
+                population[i].chart.mutate2(rng);
+        }
+        else
+            population[i].chart.mutate(rng);
 
     return ret;
+}
+
+template<std::size_t Row, std::size_t Column>
+const ScoredChart<Row, Column>& Simulation<Row, Column>::top() const noexcept {
+    return population[0];
 }
 
 template<std::size_t Row, std::size_t Column>
@@ -122,13 +140,13 @@ constexpr double score_chart(const SeatingChart<Row, Column>& chart,
             for (const auto stu_friend : class_info.friends_of(student))
             {
                 total_score +=
-                  4 / distance_squared(chart.locations()[student], chart.locations()[stu_friend]);
+                  4.0 / distance_squared(chart.locations()[student], chart.locations()[stu_friend]);
             }
 
             for (const auto stu_enemy : class_info.enemies_of(student))
             {
                 total_score -=
-                  3 / distance_squared(chart.locations()[student], chart.locations()[stu_enemy]);
+                  3.0 / distance_squared(chart.locations()[student], chart.locations()[stu_enemy]);
             }
         }
     }
