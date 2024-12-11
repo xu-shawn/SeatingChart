@@ -4,7 +4,9 @@
 #include <cassert>
 #include <cstddef>
 #include <fstream>
+#include <iomanip>
 #include <string>
+#include <iostream>
 
 #include "classinfo.hpp"
 #include "seatingchart.hpp"
@@ -44,7 +46,14 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
     for (int i = 0; i < Row * Column; i++)
     {
         std::getline(input, line);
-        const auto  colon_idx = line.find(';');
+
+        if (line.empty())
+        {
+            i--;
+            continue;
+        }
+
+        const auto  colon_idx = line.find(':');
         const auto  key       = line.substr(0, colon_idx);
         std::size_t index_key;
 
@@ -60,13 +69,21 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
         const auto str_data = utils::split(line.substr(colon_idx + 2), ' ');
 
         for (const auto& person : str_data)
-            friends[index_key].push_back(std::stoi(person));
+            friends[index_key].push_back(
+              std::distance(lookup.begin(), std::find(lookup.begin(), lookup.end(), person)));
     }
 
     for (int i = 0; i < Row * Column; i++)
     {
         std::getline(input, line);
-        const auto  colon_idx = line.find(';');
+
+        if (line.empty())
+        {
+            i--;
+            continue;
+        }
+
+        const auto  colon_idx = line.find(':');
         const auto  key       = line.substr(0, colon_idx);
         std::size_t index_key;
 
@@ -82,7 +99,8 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
         const auto str_data = utils::split(line.substr(colon_idx + 2), ' ');
 
         for (const auto& person : str_data)
-            enemies[index_key].push_back(std::stoi(person));
+            enemies[index_key].push_back(
+              std::distance(lookup.begin(), std::find(lookup.begin(), lookup.end(), person)));
     }
 
     return ParseResult<Row, Column>{

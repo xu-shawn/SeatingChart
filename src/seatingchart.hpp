@@ -54,7 +54,7 @@ constexpr SeatingChart<Row, Column>::SeatingChart(T&& c) :
     seats_(std::forward<T>(c)) {
     for (size_t i = 0; i < Row; i++)
         for (size_t j = 0; j < Column; j++)
-            locations_.emplace(seats_[i][j], {i, j});
+            locations_[seats_[i][j]] = {i, j};
 }
 
 template<std::size_t Row, std::size_t Column>

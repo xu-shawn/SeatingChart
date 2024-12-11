@@ -11,6 +11,6 @@ SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(SOURCE_FILES src/main.cpp)
+set(SOURCE_FILES src/main.cpp src/utils.cpp)
 
 add_executable(SeatingChart ${SOURCE_FILES})

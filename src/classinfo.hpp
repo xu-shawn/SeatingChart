@@ -41,8 +41,8 @@ template<typename T, typename U, typename, typename>
 constexpr ClassInfo<NumStudents>::ClassInfo(T&& f, U&& s) :
     friends{std::forward<T>(f)},
     enemies{std::forward<U>(s)},
-    friends_lookup{false},
-    enemies_lookup{false} {
+    friends_lookup{{{false}}},
+    enemies_lookup{{{false}}} {
     using std::size;
 
     for (int student = 0; student < size(friends); student++)
