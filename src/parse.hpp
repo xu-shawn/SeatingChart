@@ -6,7 +6,6 @@
 #include <fstream>
 #include <iomanip>
 #include <string>
-#include <iostream>
 
 #include "classinfo.hpp"
 #include "seatingchart.hpp"
@@ -66,7 +65,7 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
             }
         }
 
-        const auto str_data = utils::split(line.substr(colon_idx + 2), ' ');
+        const auto str_data = utils::split(line.substr(colon_idx + 2), ',');
 
         for (const auto& person : str_data)
             friends[index_key].push_back(
@@ -96,7 +95,7 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
             }
         }
 
-        const auto str_data = utils::split(line.substr(colon_idx + 2), ' ');
+        const auto str_data = utils::split(line.substr(colon_idx + 2), ',');
 
         for (const auto& person : str_data)
             enemies[index_key].push_back(

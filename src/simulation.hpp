@@ -28,6 +28,7 @@ template<std::size_t Row, std::size_t Column>
 struct ScoredChart {
     SeatingChart<Row, Column> chart;
     double                    score;
+    ScoredChart(const SeatingChart<Row, Column>, const double score);
 };
 
 template<std::size_t Row, std::size_t Column>
@@ -40,7 +41,7 @@ class Simulation {
     std::default_random_engine            rng;
 
    public:
-    Simulation(const SeatingChart<Row, Column>&, std::size_t);
+    Simulation(const SeatingChart<Row, Column>&, const ClassInfo<Row * Column>&, std::size_t);
     SimulationInfo step() noexcept;
 };
 
@@ -53,14 +54,23 @@ template<std::size_t Row, std::size_t Column>
 namespace SeatingChart {
 
 template<std::size_t Row, std::size_t Column>
+ScoredChart<Row, Column>::ScoredChart(SeatingChart<Row, Column> c, double s) :
+    chart{c},
+    score{s} {}
+
+template<std::size_t Row, std::size_t Column>
 auto operator<=>(const ScoredChart<Row, Column>& chart, const ScoredChart<Row, Column>& other) {
     return chart.score <=> other.score;
 }
 
 template<std::size_t Row, std::size_t Column>
-Simulation<Row, Column>::Simulation(const SeatingChart<Row, Column>& seed, std::size_t cnt) :
+Simulation<Row, Column>::Simulation(const SeatingChart<Row, Column>& seed,
+                                    const ClassInfo<Row * Column>&   cinfo,
+                                    std::size_t                      cnt) :
+    class_info{cinfo},
     rng{42} {
     population.reserve(cnt);
+
     for (int i = 0; i < cnt; i++)
     {
         population.emplace_back(seed, 0);

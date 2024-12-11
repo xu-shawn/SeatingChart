@@ -24,6 +24,7 @@ class ClassInfo {
         std::is_same_v<std::remove_reference_t<U>, std::array<std::vector<int>, NumStudents>>,
         bool>>
     constexpr ClassInfo(T&&, U&&);
+    constexpr ClassInfo(const ClassInfo&) = default;
 
     [[nodiscard]] constexpr bool friends_towards(std::size_t, std::size_t) const noexcept;
     [[nodiscard]] constexpr bool enemies_towards(std::size_t, std::size_t) const noexcept;
