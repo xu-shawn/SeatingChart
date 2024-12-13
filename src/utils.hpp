@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace SeatingChart::utils {
+namespace SeatingChartGenetic::utils {
 
 std::vector<std::string> split(const std::string&, char);
 

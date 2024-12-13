@@ -4,15 +4,22 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <random>
 #include <type_traits>
 #include <iostream>
 
-namespace SeatingChart {
+namespace SeatingChartGenetic {
 
 struct Location {
     std::size_t row;
     std::size_t column;
+};
+
+struct Move {
+    std::size_t student1;
+    std::size_t student2;
+    bool        is_pair_swap;
 };
 
 template<std::size_t Row, std::size_t Column>
@@ -42,23 +49,35 @@ class SeatingChart {
     template<typename PRNG>
     void random_shuffle(PRNG&);
 
-    template<typename PRNG>
-    void mutate(PRNG&);
+    template<typename PRNG, std::size_t Swaps>
+    void partial_random_shuffle(PRNG&);
 
-    template<typename PRNG>
-    void mutate2(PRNG&);
+    template<typename PRNG, typename PRNG::result_type probability>
+    void probablistic_random_shuffle(PRNG&);
+
+    template<typename Scorer>
+    bool hill_climb_students(Scorer&);
+
+    template<typename Scorer>
+    bool hill_climb_pairs(Scorer&);
+
+    template<typename Scorer>
+    bool hill_climb_combined(Scorer&);
+
+    template<typename Scorer>
+    bool hill_climb_lookahead(Scorer&);
 };
 
 }
 
-namespace SeatingChart {
+namespace SeatingChartGenetic {
 
 template<std::size_t Row, std::size_t Column>
 template<typename T, typename>
 constexpr SeatingChart<Row, Column>::SeatingChart(T&& c) :
     seats_(std::forward<T>(c)) {
-    for (size_t i = 0; i < Row; i++)
-        for (size_t j = 0; j < Column; j++)
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
             locations_[seats_[i][j]] = {i, j};
 }
 
@@ -77,8 +96,8 @@ constexpr void SeatingChart<Row, Column>::swap_students(std::size_t first,
 template<std::size_t Row, std::size_t Column>
 constexpr void SeatingChart<Row, Column>::swap_pairs(std::size_t first,
                                                      std::size_t second) noexcept {
-    this->swap_students(first, second);
-    this->swap_students(get_tablemate(first), get_tablemate(second));
+    swap_students(first, second);
+    swap_students(get_tablemate(first), get_tablemate(second));
 }
 
 template<std::size_t Row, std::size_t Column>
@@ -94,63 +113,172 @@ void SeatingChart<Row, Column>::random_shuffle(PRNG& prng) {
 
     std::array<std::size_t, Row * Column> temp;
 
-    for (int i = 0; i < Row; i++)
-        for (int j = 0; j < Column; j++)
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
             temp[i * Column + j] = seats_[i][j];
 
     std::shuffle(begin(temp), end(temp), prng);
 
-    for (int i = 0; i < Row; i++)
-        for (int j = 0; j < Column; j++)
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
             seats_[i][j] = temp[i * Column + j];
+
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
+            locations_[seats_[i][j]] = {i, j};
 }
 
 template<std::size_t Row, std::size_t Column>
-template<typename PRNG>
-void SeatingChart<Row, Column>::mutate(PRNG& prng) {
+template<typename PRNG, std::size_t Swaps>
+void SeatingChart<Row, Column>::partial_random_shuffle(PRNG& prng) {
     using distribution_type = std::uniform_int_distribution<typename PRNG::result_type>;
-    static distribution_type dist{0, Row * Column - 1};
+    static_assert(Swaps <= Row * Column);
 
-    const int num_swaps = distribution_type{0, (Row * Column - 1) / 4}(prng);
+    distribution_type gen_student{0, Row - 1};
+    distribution_type coin_flip{0, 1};
 
-    for (int i = 0; i < num_swaps; i++)
-    {
-        const int chosen_student = dist(prng);
-        const auto [x, y]        = locations_[chosen_student];
-
-        const int destination_x =
-          distribution_type{std::max<typename PRNG::result_type>(x, 2) - 2,
-                            std::min<typename PRNG::result_type>(x + 2, Row - 1)}(prng);
-        const int destination_y =
-          distribution_type{std::max<typename PRNG::result_type>(y, 2) - 2,
-                            std::min<typename PRNG::result_type>(y + 2, Column - 1)}(prng);
-
-        this->swap_students(seats_[x][y], seats_[destination_x][destination_y]);
-    }
+    if (coin_flip(prng))
+        for (std::size_t i = 0; i < Swaps; i++)
+            swap_students(i, gen_student(prng));
+    else
+        for (std::size_t i = Row * Column - 1; i >= Row * Column - Swaps; i--)
+            swap_students(i, gen_student(prng));
 }
 
 template<std::size_t Row, std::size_t Column>
-template<typename PRNG>
-void SeatingChart<Row, Column>::mutate2(PRNG& prng) {
+template<typename PRNG, typename PRNG::result_type probability>
+void SeatingChart<Row, Column>::probablistic_random_shuffle(PRNG& prng) {
     using distribution_type = std::uniform_int_distribution<typename PRNG::result_type>;
-    static distribution_type dist{0, Row * Column - 1};
+    static_assert(probability <= 1000);
+    static_assert(probability > 0);
 
-    const int num_swaps = distribution_type{0, (Row * Column - 1) / 4}(prng);
+    distribution_type gen_student{0, Row - 1};
+    distribution_type gen_probablistic{0, 1000};
 
-    for (int i = 0; i < num_swaps; i++)
+    for (std::size_t i = 0; i < Row * Column; i++)
+        if (gen_probablistic(prng) > probability)
+            swap_students(i, gen_student(prng));
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+bool SeatingChart<Row, Column>::hill_climb_students(Scorer& scorer) {
+    double maximum_score = scorer(*this);
+    bool   found_raise   = false;
+
+    std::pair<std::size_t, std::size_t> best_swap;
+
+    for (std::size_t i = 0; i < Row * Column; i++)
     {
-        const int chosen_student = dist(prng);
-        const auto [x, y]        = locations_[chosen_student];
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            swap_students(i, j);
 
-        const int destination_x =
-          distribution_type{std::max<typename PRNG::result_type>(x, 2) - 2,
-                            std::min<typename PRNG::result_type>(x + 2, Row - 1)}(prng);
-        const int destination_y =
-          distribution_type{std::max<typename PRNG::result_type>(y, 2) - 2,
-                            std::min<typename PRNG::result_type>(y + 2, Column - 1)}(prng);
+            const double curr_score = scorer(*this);
 
-        this->swap_pairs(seats_[x][y], seats_[destination_x][destination_y]);
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = std::make_pair(i, j);
+            }
+
+            swap_students(i, j);
+        }
     }
+
+    swap_students(best_swap.first, best_swap.second);
+
+    return found_raise;
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+bool SeatingChart<Row, Column>::hill_climb_pairs(Scorer& scorer) {
+    double maximum_score = scorer(*this);
+    bool   found_raise   = false;
+
+    std::pair<std::size_t, std::size_t> best_swap;
+
+    for (std::size_t i = 0; i < Row * Column; i++)
+    {
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            swap_pairs(i, j);
+
+            const double curr_score = scorer(*this);
+
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = std::make_pair(i, j);
+            }
+
+            swap_pairs(i, j);
+        }
+    }
+
+    swap_pairs(best_swap.first, best_swap.second);
+
+    return found_raise;
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+bool SeatingChart<Row, Column>::hill_climb_combined(Scorer& scorer) {
+    double maximum_score = scorer(*this);
+    bool   found_raise   = false;
+
+    Move best_swap;
+
+    for (std::size_t i = 0; i < Row * Column; i++)
+    {
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            swap_students(i, j);
+
+            const double curr_score = scorer(*this);
+
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = {i, j, false};
+            }
+
+            swap_students(i, j);
+        }
+    }
+
+    for (std::size_t i = 0; i < Row * Column; i++)
+    {
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            swap_pairs(i, j);
+
+            const double curr_score = scorer(*this);
+
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = {i, j, true};
+            }
+
+            swap_pairs(i, j);
+        }
+    }
+
+    if (found_raise)
+    {
+        if (best_swap.is_pair_swap)
+            swap_pairs(best_swap.student1, best_swap.student2);
+        else
+            swap_students(best_swap.student1, best_swap.student2);
+    }
+
+    return found_raise;
 }
 
 }

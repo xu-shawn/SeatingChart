@@ -11,7 +11,7 @@
 #include "seatingchart.hpp"
 #include "utils.hpp"
 
-namespace SeatingChart {
+namespace SeatingChartGenetic {
 
 template<std::size_t Row, std::size_t Column>
 struct ParseResult {
@@ -29,9 +29,9 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
     std::array<std::string, Row * Column>            lookup;
     std::array<std::array<std::size_t, Column>, Row> seats;
 
-    for (int i = 0; i < Row; i++)
+    for (std::size_t i = 0; i < Row; i++)
     {
-        for (int j = 0; j < Column; j++)
+        for (std::size_t j = 0; j < Column; j++)
         {
             input >> lookup[i * Column + j];
             seats[i][j] = i * Column + j;
@@ -42,7 +42,7 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
     std::array<std::vector<int>, Row * Column> friends;
     std::array<std::vector<int>, Row * Column> enemies;
 
-    for (int i = 0; i < Row * Column; i++)
+    for (std::uint64_t i = 0; i < Row * Column; i++)
     {
         std::getline(input, line);
 
@@ -72,7 +72,7 @@ ParseResult<Row, Column> parse(std::ifstream&& input) {
               std::distance(lookup.begin(), std::find(lookup.begin(), lookup.end(), person)));
     }
 
-    for (int i = 0; i < Row * Column; i++)
+    for (std::uint64_t i = 0; i < Row * Column; i++)
     {
         std::getline(input, line);
 
