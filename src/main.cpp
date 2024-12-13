@@ -1,11 +1,13 @@
 #include <fstream>
 #include <iostream>
+#include <limits>
+#include <math.h>
 
 #include "parse.hpp"
 #include "seatingchart.hpp"
 #include "simulation.hpp"
 
-using namespace SeatingChart;
+using namespace SeatingChartGenetic;
 
 int main() {
     constexpr std::size_t Row    = 6;
@@ -13,13 +15,20 @@ int main() {
     auto [names_lookup, seating_chart, class_info] =
       parse<Row, Column>(std::ifstream("6_by_8.txt"));
     std::cout << score_chart(seating_chart, class_info) << std::endl;
-    Simulation<Row, Column> sim{seating_chart, class_info, 128};
-    for (std::size_t i = 0; i < 100000; i++)
-    {
-        sim.step();
-        if (i % 1000 == 0)
-            std::cout << sim.top().score << std::endl;
-    }
 
-    std::cout << sim.top().score;
+    auto scoring_function = [&class_info = class_info](const SeatingChart<Row, Column> chart) {
+        return score_chart(chart, class_info);
+    };
+
+    std::default_random_engine rng{42};
+
+    for (std::size_t i = 0; i < std::numeric_limits<std::size_t>::max(); i++)
+    {
+        seating_chart.random_shuffle(rng);
+
+        while (seating_chart.hill_climb_combined(scoring_function))
+        {}
+
+        std::cout << score_chart(seating_chart, class_info) << std::endl;
+    }
 }

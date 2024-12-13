@@ -4,11 +4,12 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <random>
 #include <type_traits>
 #include <iostream>
 
-namespace SeatingChart {
+namespace SeatingChartGenetic {
 
 struct Location {
     std::size_t row;
@@ -41,18 +42,27 @@ class SeatingChart {
 
     template<typename PRNG>
     void random_shuffle(PRNG&);
+
+    template<typename Scorer>
+    bool hill_climb_students(Scorer&);
+
+    template<typename Scorer>
+    bool hill_climb_pairs(Scorer&);
+
+    template<typename Scorer>
+    bool hill_climb_combined(Scorer&);
 };
 
 }
 
-namespace SeatingChart {
+namespace SeatingChartGenetic {
 
 template<std::size_t Row, std::size_t Column>
 template<typename T, typename>
 constexpr SeatingChart<Row, Column>::SeatingChart(T&& c) :
     seats_(std::forward<T>(c)) {
-    for (size_t i = 0; i < Row; i++)
-        for (size_t j = 0; j < Column; j++)
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
             locations_[seats_[i][j]] = {i, j};
 }
 
@@ -97,6 +107,131 @@ void SeatingChart<Row, Column>::random_shuffle(PRNG& prng) {
     for (std::size_t i = 0; i < Row; i++)
         for (std::size_t j = 0; j < Column; j++)
             seats_[i][j] = temp[i * Column + j];
+
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
+            locations_[seats_[i][j]] = {i, j};
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+bool SeatingChart<Row, Column>::hill_climb_students(Scorer& scorer) {
+    double maximum_score = scorer(*this);
+    bool   found_raise   = false;
+
+    std::pair<std::size_t, std::size_t> best_swap;
+
+    for (std::size_t i = 0; i < Row * Column; i++)
+    {
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            this->swap_students(i, j);
+
+            const double curr_score = scorer(*this);
+
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = std::make_pair(i, j);
+            }
+
+            this->swap_students(i, j);
+        }
+    }
+
+    this->swap_students(best_swap.first, best_swap.second);
+
+    return found_raise;
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+bool SeatingChart<Row, Column>::hill_climb_pairs(Scorer& scorer) {
+    double maximum_score = scorer(*this);
+    bool   found_raise   = false;
+
+    std::pair<std::size_t, std::size_t> best_swap;
+
+    for (std::size_t i = 0; i < Row * Column; i++)
+    {
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            this->swap_pairs(i, j);
+
+            const double curr_score = scorer(*this);
+
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = std::make_pair(i, j);
+            }
+
+            this->swap_pairs(i, j);
+        }
+    }
+
+    this->swap_pairs(best_swap.first, best_swap.second);
+
+    return found_raise;
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+bool SeatingChart<Row, Column>::hill_climb_combined(Scorer& scorer) {
+    double maximum_score = scorer(*this);
+    bool   found_raise   = false;
+
+    std::tuple<std::size_t, std::size_t, bool> best_swap;
+
+    for (std::size_t i = 0; i < Row * Column; i++)
+    {
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            swap_students(i, j);
+
+            const double curr_score = scorer(*this);
+
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = {i, j, false};
+            }
+
+            swap_students(i, j);
+        }
+    }
+
+    for (std::size_t i = 0; i < Row * Column; i++)
+    {
+        for (std::size_t j = i + 1; j < Row * Column; j++)
+        {
+            swap_pairs(i, j);
+
+            const double curr_score = scorer(*this);
+
+            if (curr_score > maximum_score)
+            {
+                maximum_score = curr_score;
+                found_raise   = true;
+                best_swap     = {i, j, true};
+            }
+
+            swap_pairs(i, j);
+        }
+    }
+
+    if (found_raise)
+    {
+        if (std::get<2>(best_swap))
+            swap_pairs(std::get<0>(best_swap), std::get<1>(best_swap));
+        else
+            swap_students(std::get<0>(best_swap), std::get<1>(best_swap));
+    }
+
+    return found_raise;
 }
 
 }

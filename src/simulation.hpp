@@ -10,7 +10,7 @@
 #include "classinfo.hpp"
 #include "seatingchart.hpp"
 
-namespace SeatingChart {
+namespace SeatingChartGenetic {
 
 namespace {
 
@@ -53,7 +53,7 @@ template<std::size_t Row, std::size_t Column>
 
 }
 
-namespace SeatingChart {
+namespace SeatingChartGenetic {
 
 template<std::size_t Row, std::size_t Column>
 ScoredChart<Row, Column>::ScoredChart(SeatingChart<Row, Column> c, double s) :
