@@ -11,7 +11,7 @@
 #include "seatingchart.hpp"
 #include "utils.hpp"
 
-namespace SeatingChart {
+namespace SeatingChartTSP {
 
 template<std::size_t Row, std::size_t Column>
 struct ParseResult {

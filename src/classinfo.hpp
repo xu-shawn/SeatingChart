@@ -4,7 +4,7 @@
 #include <array>
 #include <vector>
 
-namespace SeatingChart {
+namespace SeatingChartTSP {
 
 template<size_t NumStudents>
 class ClassInfo {
@@ -35,7 +35,7 @@ class ClassInfo {
 
 }
 
-namespace SeatingChart {
+namespace SeatingChartTSP {
 
 template<size_t NumStudents>
 template<typename T, typename U, typename, typename>

@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <iostream>
 
-namespace SeatingChart {
+namespace SeatingChartTSP {
 
 struct Location {
     std::size_t row;
@@ -46,12 +46,18 @@ class SeatingChart {
     void mutate(PRNG&);
 
     template<typename PRNG>
-    void mutate2(PRNG&);
+    void mutate_pair(PRNG&);
+
+    template<typename Scorer>
+    void hill_climb(Scorer&&);
+
+    template<typename Scorer>
+    void hill_climb_pair(Scorer&&);
 };
 
 }
 
-namespace SeatingChart {
+namespace SeatingChartTSP {
 
 template<std::size_t Row, std::size_t Column>
 template<typename T, typename>
@@ -131,7 +137,7 @@ void SeatingChart<Row, Column>::mutate(PRNG& prng) {
 
 template<std::size_t Row, std::size_t Column>
 template<typename PRNG>
-void SeatingChart<Row, Column>::mutate2(PRNG& prng) {
+void SeatingChart<Row, Column>::mutate_pair(PRNG& prng) {
     using distribution_type = std::uniform_int_distribution<typename PRNG::result_type>;
     static distribution_type dist{0, Row * Column - 1};
 
@@ -150,6 +156,46 @@ void SeatingChart<Row, Column>::mutate2(PRNG& prng) {
                             std::min<typename PRNG::result_type>(y + 2, Column - 1)}(prng);
 
         this->swap_pairs(seats_[x][y], seats_[destination_x][destination_y]);
+    }
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+void SeatingChart<Row, Column>::hill_climb(Scorer&& scorer) {
+    const auto highest = scorer(*this);
+    for (int i = 0; i < Row * Column; i++)
+    {
+        for (int j = i + 1; j < Row * Column; j++)
+        {
+            this->swap_students(i, j);
+
+            if (scorer(*this) > highest)
+            {
+                return;
+            }
+
+            this->swap_students(i, j);
+        }
+    }
+}
+
+template<std::size_t Row, std::size_t Column>
+template<typename Scorer>
+void SeatingChart<Row, Column>::hill_climb_pair(Scorer&& scorer) {
+    const auto highest = scorer(*this);
+    for (int i = 0; i < Row * Column; i++)
+    {
+        for (int j = i + 1; j < Row * Column; j++)
+        {
+            this->swap_pairs(i, j);
+
+            if (scorer(*this) > highest + 1)
+            {
+                return;
+            }
+
+            this->swap_pairs(i, j);
+        }
     }
 }
 

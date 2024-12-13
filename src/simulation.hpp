@@ -4,13 +4,15 @@
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iterator>
+#include <limits>
 #include <random>
 #include <vector>
 
 #include "classinfo.hpp"
 #include "seatingchart.hpp"
 
-namespace SeatingChart {
+namespace SeatingChartTSP {
 
 namespace {
 
@@ -29,7 +31,10 @@ template<std::size_t Row, std::size_t Column>
 struct ScoredChart {
     SeatingChart<Row, Column> chart;
     double                    score;
-    ScoredChart(const SeatingChart<Row, Column>, const double score);
+    ScoredChart(const SeatingChart<Row, Column>,
+                const double score = std::numeric_limits<double>::quiet_NaN());
+    [[nodiscard]] bool is_scored() const noexcept;
+    void               clear_score() noexcept;
 };
 
 template<std::size_t Row, std::size_t Column>
@@ -53,12 +58,22 @@ template<std::size_t Row, std::size_t Column>
 
 }
 
-namespace SeatingChart {
+namespace SeatingChartTSP {
 
 template<std::size_t Row, std::size_t Column>
 ScoredChart<Row, Column>::ScoredChart(SeatingChart<Row, Column> c, double s) :
     chart{c},
     score{s} {}
+
+template<std::size_t Row, std::size_t Column>
+bool ScoredChart<Row, Column>::is_scored() const noexcept {
+    return !std::isnan(score);
+}
+
+template<std::size_t Row, std::size_t Column>
+void ScoredChart<Row, Column>::clear_score() noexcept {
+    score = std::numeric_limits<double>::quiet_NaN();
+}
 
 template<std::size_t Row, std::size_t Column>
 auto operator<=>(const ScoredChart<Row, Column>& chart, const ScoredChart<Row, Column>& other) {
@@ -75,7 +90,7 @@ Simulation<Row, Column>::Simulation(const SeatingChart<Row, Column>& seed,
 
     for (int i = 0; i < cnt; i++)
     {
-        population.emplace_back(seed, 0);
+        population.emplace_back(seed);
         population.back().chart.random_shuffle(rng);
     }
 }
@@ -90,29 +105,30 @@ SimulationInfo Simulation<Row, Column>::step() noexcept {
     SimulationInfo ret;
 
     for (auto& chart : population)
-        chart.score = score_chart(chart.chart, class_info);
+        if (!chart.is_scored())
+            chart.score = score_chart(chart.chart, class_info);
 
     std::sort(begin(population), end(population), std::greater{});
 
-    ret.best_score = population[0].score;
+    if (size(population) > 128)
+        population.erase(std::next(begin(population), 128), end(population));
 
-    auto it = cbegin(population);
-    for (std::size_t i = size(population) / 2; i < size(population); i++)
+    ret.best_score           = population[0].score;
+    const auto reproduce_len = size(population);
+
+    for (std::size_t i = 0; i < reproduce_len; i++)
     {
-        population[i] = *it;
-        ++it;
+        population.push_back(population[i]);
     }
 
-    for (std::size_t i = 1; i < size(population); i++)
-        if (population[i].score > 150)
-        {
-            if (dist(rng) > 70)
-                population[i].chart.mutate(rng);
-            else
-                population[i].chart.mutate2(rng);
-        }
-        else
+    for (std::size_t i = 3; i < size(population); i++)
+    {
+        if (dist(rng) > 50)
             population[i].chart.mutate(rng);
+        else
+            population[i].chart.mutate_pair(rng);
+        population[i].clear_score();
+    }
 
     return ret;
 }
