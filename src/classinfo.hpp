@@ -46,11 +46,11 @@ constexpr ClassInfo<NumStudents>::ClassInfo(T&& f, U&& s) :
     enemies_lookup{{{false}}} {
     using std::size;
 
-    for (int student = 0; student < size(friends); student++)
+    for (std::size_t student = 0; student < size(friends); student++)
         for (const auto stu_friend : friends[student])
             friends_lookup[student][stu_friend] = true;
 
-    for (int student = 0; student < size(enemies); student++)
+    for (std::size_t student = 0; student < size(enemies); student++)
         for (const auto stu_enemy : enemies[student])
             enemies_lookup[student][stu_enemy] = true;
 }

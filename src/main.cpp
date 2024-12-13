@@ -14,7 +14,7 @@ int main() {
       parse<Row, Column>(std::ifstream("6_by_8.txt"));
     std::cout << score_chart(seating_chart, class_info) << std::endl;
     Simulation<Row, Column> sim{seating_chart, class_info, 128};
-    for (int i = 0; i < 100000; i++)
+    for (std::size_t i = 0; i < 100000; i++)
     {
         sim.step();
         if (i % 1000 == 0)

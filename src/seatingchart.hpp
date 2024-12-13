@@ -41,12 +41,6 @@ class SeatingChart {
 
     template<typename PRNG>
     void random_shuffle(PRNG&);
-
-    template<typename PRNG>
-    void mutate(PRNG&);
-
-    template<typename PRNG>
-    void mutate2(PRNG&);
 };
 
 }
@@ -94,63 +88,15 @@ void SeatingChart<Row, Column>::random_shuffle(PRNG& prng) {
 
     std::array<std::size_t, Row * Column> temp;
 
-    for (int i = 0; i < Row; i++)
-        for (int j = 0; j < Column; j++)
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
             temp[i * Column + j] = seats_[i][j];
 
     std::shuffle(begin(temp), end(temp), prng);
 
-    for (int i = 0; i < Row; i++)
-        for (int j = 0; j < Column; j++)
+    for (std::size_t i = 0; i < Row; i++)
+        for (std::size_t j = 0; j < Column; j++)
             seats_[i][j] = temp[i * Column + j];
-}
-
-template<std::size_t Row, std::size_t Column>
-template<typename PRNG>
-void SeatingChart<Row, Column>::mutate(PRNG& prng) {
-    using distribution_type = std::uniform_int_distribution<typename PRNG::result_type>;
-    static distribution_type dist{0, Row * Column - 1};
-
-    const int num_swaps = distribution_type{0, (Row * Column - 1) / 4}(prng);
-
-    for (int i = 0; i < num_swaps; i++)
-    {
-        const int chosen_student = dist(prng);
-        const auto [x, y]        = locations_[chosen_student];
-
-        const int destination_x =
-          distribution_type{std::max<typename PRNG::result_type>(x, 2) - 2,
-                            std::min<typename PRNG::result_type>(x + 2, Row - 1)}(prng);
-        const int destination_y =
-          distribution_type{std::max<typename PRNG::result_type>(y, 2) - 2,
-                            std::min<typename PRNG::result_type>(y + 2, Column - 1)}(prng);
-
-        this->swap_students(seats_[x][y], seats_[destination_x][destination_y]);
-    }
-}
-
-template<std::size_t Row, std::size_t Column>
-template<typename PRNG>
-void SeatingChart<Row, Column>::mutate2(PRNG& prng) {
-    using distribution_type = std::uniform_int_distribution<typename PRNG::result_type>;
-    static distribution_type dist{0, Row * Column - 1};
-
-    const int num_swaps = distribution_type{0, (Row * Column - 1) / 4}(prng);
-
-    for (int i = 0; i < num_swaps; i++)
-    {
-        const int chosen_student = dist(prng);
-        const auto [x, y]        = locations_[chosen_student];
-
-        const int destination_x =
-          distribution_type{std::max<typename PRNG::result_type>(x, 2) - 2,
-                            std::min<typename PRNG::result_type>(x + 2, Row - 1)}(prng);
-        const int destination_y =
-          distribution_type{std::max<typename PRNG::result_type>(y, 2) - 2,
-                            std::min<typename PRNG::result_type>(y + 2, Column - 1)}(prng);
-
-        this->swap_pairs(seats_[x][y], seats_[destination_x][destination_y]);
-    }
 }
 
 }

@@ -73,7 +73,7 @@ Simulation<Row, Column>::Simulation(const SeatingChart<Row, Column>& seed,
     rng{42} {
     population.reserve(cnt);
 
-    for (int i = 0; i < cnt; i++)
+    for (std::size_t i = 0; i < cnt; i++)
     {
         population.emplace_back(seed, 0);
         population.back().chart.random_shuffle(rng);
