@@ -230,7 +230,7 @@ bool SeatingChart<Row, Column>::hill_climb_combined(Scorer& scorer) {
     double maximum_score = scorer(*this);
     bool   found_raise   = false;
 
-    std::tuple<std::size_t, std::size_t, bool> best_swap;
+    Move best_swap;
 
     for (std::size_t i = 0; i < Row * Column; i++)
     {
@@ -272,144 +272,10 @@ bool SeatingChart<Row, Column>::hill_climb_combined(Scorer& scorer) {
 
     if (found_raise)
     {
-        if (std::get<2>(best_swap))
-            swap_pairs(std::get<0>(best_swap), std::get<1>(best_swap));
+        if (best_swap.is_pair_swap)
+            swap_pairs(best_swap.student1, best_swap.student2);
         else
-            swap_students(std::get<0>(best_swap), std::get<1>(best_swap));
-    }
-
-    return found_raise;
-}
-
-template<std::size_t Row, std::size_t Column>
-template<typename Scorer>
-bool SeatingChart<Row, Column>::hill_climb_lookahead(Scorer& scorer) {
-    double maximum_score  = scorer(*this);
-    double original_score = maximum_score;
-    bool   found_raise    = false;
-
-    std::array<Move, 2> moves;
-
-    for (std::size_t i = 0; i < Row * Column; i++)
-    {
-        for (std::size_t j = i + 1; j < Row * Column; j++)
-        {
-            swap_students(i, j);
-
-            const double curr_score = scorer(*this);
-
-            if (curr_score > original_score)
-            {
-                for (std::size_t i2 = 0; i2 < Row * Column; i2++)
-                {
-                    for (std::size_t j2 = i2 + 1; j2 < Row * Column; j2++)
-                    {
-                        swap_students(i2, j2);
-
-                        const double curr_score = scorer(*this);
-
-                        if (curr_score > maximum_score)
-                        {
-                            maximum_score = curr_score;
-                            found_raise   = true;
-
-                            moves[0] = {i, j, false};
-                            moves[1] = {i2, j2, false};
-                        }
-
-                        swap_students(i2, j2);
-                    }
-                }
-
-                for (std::size_t i2 = 0; i2 < Row * Column; i2++)
-                {
-                    for (std::size_t j2 = i2 + 1; j2 < Row * Column; j2++)
-                    {
-                        swap_pairs(i2, j2);
-
-                        const double curr_score = scorer(*this);
-
-                        if (curr_score > maximum_score)
-                        {
-                            maximum_score = curr_score;
-                            found_raise   = true;
-
-                            moves[0] = {i, j, false};
-                            moves[1] = {i2, j2, true};
-                        }
-
-                        swap_pairs(i2, j2);
-                    }
-                }
-            }
-
-            swap_students(i, j);
-        }
-    }
-
-    for (std::size_t i = 0; i < Row * Column; i++)
-    {
-        for (std::size_t j = i + 1; j < Row * Column; j++)
-        {
-            swap_pairs(i, j);
-
-            const double curr_score = scorer(*this);
-
-            if (curr_score > original_score)
-            {
-                for (std::size_t i2 = 0; i2 < Row * Column; i2++)
-                {
-                    for (std::size_t j2 = i2 + 1; j2 < Row * Column; j2++)
-                    {
-                        swap_students(i2, j2);
-
-                        const double curr_score = scorer(*this);
-
-                        if (curr_score > maximum_score)
-                        {
-                            maximum_score = curr_score;
-                            found_raise   = true;
-
-                            moves[0] = {i, j, true};
-                            moves[1] = {i2, j2, false};
-                        }
-
-                        swap_students(i2, j2);
-                    }
-                }
-
-                for (std::size_t i2 = 0; i2 < Row * Column; i2++)
-                {
-                    for (std::size_t j2 = i2 + 1; j2 < Row * Column; j2++)
-                    {
-                        swap_pairs(i2, j2);
-
-                        const double curr_score = scorer(*this);
-
-                        if (curr_score > maximum_score)
-                        {
-                            maximum_score = curr_score;
-                            found_raise   = true;
-
-                            moves[0] = {i, j, true};
-                            moves[1] = {i2, j2, true};
-                        }
-
-                        swap_pairs(i2, j2);
-                    }
-                }
-            }
-
-            swap_pairs(i, j);
-        }
-    }
-
-    for (const auto move : moves)
-    {
-        if (move.is_pair_swap)
-            swap_pairs(move.student1, move.student2);
-        else
-            swap_students(move.student1, move.student2);
+            swap_students(best_swap.student1, best_swap.student2);
     }
 
     return found_raise;
