@@ -23,7 +23,7 @@ int main() {
     std::cout << "Patience: " << Patience << std::endl;
 
 
-    auto scoring_function = [&class_info = class_info](const SeatingChart<Row, Column> chart) {
+    auto scoring_function = [&class_info = class_info](const SeatingChart<Row, Column>& chart) {
         return score_chart(chart, class_info);
     };
 
